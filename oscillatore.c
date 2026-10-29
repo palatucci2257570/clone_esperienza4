@@ -11,14 +11,17 @@
  * a (accelerazione nello stato corrente). Il campo a serve a velocity Verlet
  * per riusare al passo successivo l'accelerazione gia' calcolata. */
 typedef struct {
-  // TODO
+  double x;
+  double v;
+  double a;
 } Stato;
 
 /* TASK 1: i parametri del sistema fisico, con i campi omega2 e gamma. Per
  * l'oscillatore serve solo omega2; gamma servira' per il pendolo smorzato
  * della seconda parte (qui vale 0). */
 typedef struct {
-  // TODO
+  double omega2;
+  double gamma;
 } Parametri;
 
 /* Accelerazione e' il nome di un tipo: "puntatore a una funzione che riceve
@@ -27,25 +30,25 @@ typedef struct {
  * contenere l'indirizzo di funzioni come armonico (vedi sotto): gli
  * integratori la ricevono come argomento f e la chiamano con f(t, s, par)
  * senza sapere quale sistema stanno integrando. */
-typedef double (*Accelerazione)(double t, Stato s, const Parametri *par);
+typedef double (*Accelerazione)(double t, Stato s, const Parametri *par); 
 
 /* Puntatore a un integratore: una funzione che avanza lo stato *s di un passo
  * dt, a partire dal tempo t, usando solo la funzione f per conoscere
  * l'accelerazione. Tutti gli integratori qui sotto hanno questa forma. */
-typedef void (*Integratore)(double t, double dt, Stato *s, const Parametri *par, Accelerazione f);
+typedef void (*Integratore)(double t, double dt, Stato *s, const Parametri *par, Accelerazione f); //////////////////////////////////////////////////////////////////////////////////////
 
 /* TASK 1: l'accelerazione dell'oscillatore armonico, a = -omega^2 x. Ha la
  * forma richiesta dal tipo Accelerazione. Sostituite il valore provvisorio. */
 double armonico(double t, Stato s, const Parametri *par)
 {
-    return 0.0; // TODO
+  return -(par->omega2); // (*par).omega2
 }
 
 /* TASK 1: energia meccanica, E = m v^2 / 2 + m omega^2 x^2 / 2.
  * Potete riusare la funzione dell'esercitazione 3. */
 double energia(Stato s, const Parametri *par)
 {
-    return 0.0; // TODO
+  return 0.5*(M*(s.v)*(s.v)+M*(par->omega2)*(s.x)*(s.x)); // TODO
 }
 
 /* Esempio: un passo del metodo di Eulero scritto nella nuova forma.
@@ -64,7 +67,9 @@ void eulero(double t, double dt, Stato *s, const Parametri *par, Accelerazione f
  * risultato in s->a per il passo successivo. */
 void velocity_verlet(double t, double dt, Stato *s, const Parametri *par, Accelerazione f)
 {
-    // TODO
+  (s->x)+=(s->v)* dt;
+  double vmetà=(s->v)+0.5*(s->a)*dt;
+  (s->v)=vmetà+0.5*dt*f(t, *s, par);
 }
 
 /* TASK 3: un passo di Runge-Kutta. Non deve contenere nulla di specifico
@@ -76,7 +81,13 @@ void velocity_verlet(double t, double dt, Stato *s, const Parametri *par, Accele
  * (un'accelerazione, calcolata con f). */
 void rk4(double t, double dt, Stato *s, const Parametri *par, Accelerazione f)
 {
-    // TODO
+  double k1[2]={s->v, f(t, *s, par)};
+  k2_x=k1[0]+k1[1]*dt*0.5;
+  double xmid=(s->x)+0.5*k2_x*dt;
+  k2_v=f(t+0.5*dt, 
+  double k2[2]={k1[0]+k1[1]*dt*0.5, f(t+0.5*dt, *s, *par)};
+  (s->x)+=k2[0]*dt;
+  (s->v)+=k2[1]*dt;
 }
 
 int main(int argc, char *argv[])
