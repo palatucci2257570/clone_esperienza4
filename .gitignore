@@ -1,0 +1,9 @@
+*.csv
+core
+core.*
+.vscode/
+.DS_Store
+soluzione
+/oscillatore
+/pendolo_smorzato
+*.o
