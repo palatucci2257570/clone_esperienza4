@@ -1,0 +1,13 @@
+schema: "classroom50/repo-config/v1"
+classroom: "lfc-2627"
+assignment: "esercitazione-4"
+secret: "tprlvyow"
+owner:
+  username: "giustiniani2260468-ai"
+  id: 252332968
+  accepted_at: "2026-10-29T15:08:28Z"
+source:
+  owner: "Laboratorio-di-fisica-computazionale"
+  owner_id: 183608021
+  repo: "esercitazione-4-template"
+  branch: "main"
