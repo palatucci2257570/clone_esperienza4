@@ -41,7 +41,7 @@ typedef void (*Integratore)(double t, double dt, Stato *s, const Parametri *par,
  * forma richiesta dal tipo Accelerazione. Sostituite il valore provvisorio. */
 double armonico(double t, Stato s, const Parametri *par)
 {
-  return -(par->omega2); // (*par).omega2
+  return -(par->omega2)*(s.x); // (*par).omega2
 }
 
 /* TASK 1: energia meccanica, E = m v^2 / 2 + m omega^2 x^2 / 2.
