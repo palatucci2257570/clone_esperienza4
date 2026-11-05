@@ -1,147 +1,111 @@
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
+#define M 1.0
 #define EULERO 1
+#define EULERO_CROMER 2
 #define VELOCITY_VERLET 3
 #define RK4 4
-#define M 1.0
+#define RK2 5
 
-/* TASK 1: lo stato del sistema, con i campi x (posizione), v (velocita') e
- * a (accelerazione nello stato corrente). Il campo a serve a velocity Verlet
- * per riusare al passo successivo l'accelerazione gia' calcolata. */
 typedef struct {
   double x;
   double v;
   double a;
 } Stato;
-
-/* TASK 1: i parametri del sistema fisico, con i campi omega2 e gamma. Per
- * l'oscillatore serve solo omega2; gamma servira' per il pendolo smorzato
- * della seconda parte (qui vale 0). */
 typedef struct {
   double omega2;
   double gamma;
 } Parametri;
+typedef double (*Accelerazione)(double t, Stato s, const Parametri *par);
+typedef void (*Integratore)(double dt, Stato *s, double t, Accelerazione f, const Parametri *par);
+typedef double(*posizione_esatta)(double t, Stato s0, const Parametri *par);
+typedef double (*Ampiezza)(Stato s0, const Parametri *par);
 
-/* Accelerazione e' il nome di un tipo: "puntatore a una funzione che riceve
- * (double t, Stato s, const Parametri *par) e restituisce un double",
- * l'accelerazione dv/dt nello stato s. Una variabile di questo tipo puo'
- * contenere l'indirizzo di funzioni come armonico (vedi sotto): gli
- * integratori la ricevono come argomento f e la chiamano con f(t, s, par)
- * senza sapere quale sistema stanno integrando. */
-typedef double (*Accelerazione)(double t, Stato s, const Parametri *par); 
+double armonico(double t, Stato s, const Parametri *par){ return -(par->omega2)*(s.x);}
+double energia(Stato s, const Parametri *par){return 0.5*M*((s.v*s.v)+(s.x*s.x*par->omega2));}
+double errore(Stato s, double t, Stato s0, const Parametri *par, posizione_esatta x_esatto){ return fabs(x_esatto(t, s0, par)-s.x);}
+double posizione_esatta_armonico(double t, Stato s0, const Parametri *par){double w = sqrt(par->omega2); return s0.x * cos((w) * t) + s0.v / (w) * sin((w) * t);}
+double ampiezza_armonico(Stato s0, const Parametri *par){ return sqrt(s0.x*s0.x + s0.v*s0.v/(par->omega2)); }
 
-/* Puntatore a un integratore: una funzione che avanza lo stato *s di un passo
- * dt, a partire dal tempo t, usando solo la funzione f per conoscere
- * l'accelerazione. Tutti gli integratori qui sotto hanno questa forma. */
-typedef void (*Integratore)(double t, double dt, Stato *s, const Parametri *par, Accelerazione f); //////////////////////////////////////////////////////////////////////////////////////
 
-/* TASK 1: l'accelerazione dell'oscillatore armonico, a = -omega^2 x. Ha la
- * forma richiesta dal tipo Accelerazione. Sostituite il valore provvisorio. */
-double armonico(double t, Stato s, const Parametri *par)
+void eulero(double dt, Stato *s, double t, Accelerazione f,const Parametri *par)
 {
-  return -(par->omega2); // (*par).omega2
+  Stato s_i=*s;
+  (s->x)+=(s->v)*dt;
+  (s->v)+=f(t, s_i, par)*dt;
 }
-
-/* TASK 1: energia meccanica, E = m v^2 / 2 + m omega^2 x^2 / 2.
- * Potete riusare la funzione dell'esercitazione 3. */
-double energia(Stato s, const Parametri *par)
+void eulero_cromer(double dt, Stato *s, double t, Accelerazione f, const Parametri *par)
 {
-  return 0.5*(M*(s.v)*(s.v)+M*(par->omega2)*(s.x)*(s.x)); // TODO
+  (s->v)+=f(t, *s, par)*dt;
+  (s->x)+=(s->v)*dt;
 }
-
-/* Esempio: un passo del metodo di Eulero scritto nella nuova forma.
- * L'integratore non sa quale sistema sta integrando: chiede
- * l'accelerazione a f. */
-void eulero(double t, double dt, Stato *s, const Parametri *par, Accelerazione f)
+void velocity_verlet(double dt, Stato *s, double t, Accelerazione f, const Parametri *par)
 {
-    double a = f(t, *s, par);
-    s->x = s->x + s->v * dt;
-    s->v = s->v + a * dt;
+  double vmid=(s->v)+f(t, *s, par)*dt*0.5; 
+  (s->x)+=vmid*dt;
+  (s->v)=vmid+0.5*dt*f(t, *s, par); /*se f dipende da v non va bene velocity_verlet*/
 }
-
-/* TASK 2: un passo di velocity Verlet nella nuova forma, partendo dal vostro
- * codice dell'esercitazione 3. L'accelerazione nella vecchia posizione e' gia'
- * in s->a: chiamate f una sola volta, nella nuova posizione, e salvate il
- * risultato in s->a per il passo successivo. */
-void velocity_verlet(double t, double dt, Stato *s, const Parametri *par, Accelerazione f)
+void rk4(double dt, Stato *s, double t, Accelerazione f, const Parametri *par)
 {
-  (s->x)+=(s->v)* dt;
-  double vmetà=(s->v)+0.5*(s->a)*dt;
-  (s->v)=vmetà+0.5*dt*f(t, *s, par);
+  double k1[2]={(s->v), f(t, *s, par)};
+  Stato s2={(s->x)+k1[0]*dt*0.5, (s->v)+0.5*dt*k1[1], 0};
+  double k2[2]={s2.v, f(t+0.5*dt, s2, par)};
+  Stato s3={(s->x)+k2[0]*0.5*dt, (s->v)+k2[1]*0.5*dt, 0};
+  double k3[2]={s3.v, f(t+0.5*dt, s3, par)};
+  Stato s4={(s->x)+k3[0]*dt, (s->v)+k3[1]*dt, 0};
+  double k4[2]={s4.v, f(t+dt, s4, par)};
+  (s->x)+=dt/6.0*(k1[0]+2*k2[0]+2*k3[0]+k4[0]);
+  (s->v)+=dt/6.0*(k1[1]+2*k2[1]+2*k3[1]+k4[1]);
+  (s->a)=f(t+dt, *s, par); /*in realtà non servirebbe aggiornarla a meno che tu non debba stampare l'intero vettore s */
 }
-
-/* TASK 3: un passo di Runge-Kutta. Non deve contenere nulla di specifico
- * dell'oscillatore: solo chiamate a f. Procedete in due fasi:
- *  a) scrivete prima RK2 (k1 e k2, poi il passo con k2) e controllate che
- *     funzioni, ad esempio che l'errore scali come dt^2;
- *  b) aggiungete k3 e k4 e cambiate l'ultimo passo, trasformandolo in RK4.
- * Ogni k ha due componenti: quella per x (una velocita') e quella per v
- * (un'accelerazione, calcolata con f). */
-void rk4(double t, double dt, Stato *s, const Parametri *par, Accelerazione f)
+void rk2(double dt, Stato *s, double t, Accelerazione f, const Parametri *par)
 {
-  double k1[2]={s->v, f(t, *s, par)};
-  k2_x=k1[0]+k1[1]*dt*0.5;
-  double xmid=(s->x)+0.5*k2_x*dt;
-  k2_v=f(t+0.5*dt, 
-  double k2[2]={k1[0]+k1[1]*dt*0.5, f(t+0.5*dt, *s, *par)};
+  double k1[2]={(s->v), f(t, *s, par)};
+  Stato s2={(s->x)+k1[0]*dt*0.5, (s->v)+0.5*dt*k1[1], 0};
+  double k2[2]={s2.v, f(t+0.5*dt, s2, par)};
   (s->x)+=k2[0]*dt;
   (s->v)+=k2[1]*dt;
+  (s->a)=f(t+dt, *s, par);
 }
+
+
 
 int main(int argc, char *argv[])
 {
-    /* Il programma si usa come nelle esercitazioni 2 e 3:
-     *     ./oscillatore METODO DT N X0 V0 OMEGA2
-     * Potete sostituire questa parte con il vostro codice dell'esercitazione 3. */
-    if (argc != 7) {
-        fprintf(stderr, "Uso: %s METODO DT N X0 V0 OMEGA2\n", argv[0]);
-        return 2;
-    }
-
-    int metodo = atoi(argv[1]);
-    double dt = atof(argv[2]);
-    int n_passi = atoi(argv[3]);
-    double x0 = atof(argv[4]);
-    double v0 = atof(argv[5]);
-    Parametri par = {atof(argv[6]), 0.0};
-    if (dt <= 0.0 || n_passi <= 0 || par.omega2 <= 0.0) {
-        fprintf(stderr, "Errore: DT, N e OMEGA2 devono essere positivi\n");
-        return 2;
-    }
-
-    /* TASK 4: scegliete l'integratore una volta sola, prima del ciclo,
-     * assegnando al puntatore a funzione `passo` la funzione giusta. */
-    Integratore passo = NULL;
-    if (metodo == EULERO) {
-        passo = eulero;
-    }
-    // TODO: aggiungete un else if per VELOCITY_VERLET e uno per RK4
-    else {
-        fprintf(stderr, "Errore: METODO deve essere 1, 3 o 4\n");
-        return 2;
-    }
-
-    /* Lo stato iniziale. L'accelerazione iniziale va calcolata una volta,
-     * prima del ciclo: velocity Verlet la usa al primo passo. */
-    Stato s = {x0, v0, 0.0};
-    s.a = armonico(0.0, s, &par);
-
-    /* TASK 4: l'output resta quello delle esercitazioni 2 e 3: N + 1 righe
-     * con le cinque colonne
-     *     t x v E errore
-     * per esempio con
-     *     printf("%.10e %.10e %.10e %.10e %.10e\n", t, s.x, s.v, E, errore);
-     * Stampate prima la condizione iniziale (t = 0), poi nel ciclo fate N
-     * passi chiamando l'integratore tramite il puntatore,
-     *     passo(n * dt, dt, &s, &par, armonico);
-     * e stampate lo stato al nuovo tempo t = (n + 1) * dt.
-     * Il ciclo non deve sapere quale metodo e' stato scelto. */
-    // TODO: stampa della condizione iniziale
-    for (int n = 0; n < n_passi; ++n) {
-        // TODO
-    }
-
-    return 0;
+  if(argc!=7){fprintf(stderr, "Uso: %s METODO DT N X0 V0 OMEGA2\n", argv[0]); return 2;}
+  int metodo=atoi(argv[1]);
+  double dt=atof(argv[2]);
+  int n_passi=atoi(argv[3]);
+  Stato s={atof(argv[4]), atof(argv[5]), 0.0};
+  Stato s0=s;
+  Parametri par={atof(argv[6]), 0};
+  if (dt<=0 || n_passi<=0 || par.omega2<=0){fprintf(stderr, "DT N OMEGA2 DEVONO ESSERE POSITIVI\n"); return 2;}
+  //scelta metodo:
+  Integratore passo= NULL; 
+  if (metodo == EULERO) {passo=eulero;}
+  else if (metodo == EULERO_CROMER) {passo=eulero_cromer;}
+  else if (metodo == VELOCITY_VERLET){ passo=velocity_verlet; }
+  else if (metodo == RK4) { passo=rk4;}
+  else if (metodo == RK2){ passo=rk2;}
+  else {fprintf(stderr, "METODO DEVE ESSERE 1, 2, 3, 4, 5\n"); return 2;}
+  //scelta tipo di sistema fisico per ora ne ho uno solo
+  posizione_esatta x_esatto;
+  Accelerazione a;
+  Ampiezza A;
+  x_esatto=posizione_esatta_armonico;
+  a=armonico;
+  A=ampiezza_armonico;
+  
+  s.a=a(0.0, s, &par);
+  //stampa condizione iniziale e ciclo per calcolo e stampa stati successivi 
+  fprintf(stdout, "%.10e %.10e %.10e %.10e %.10e %.10e\n", 0.,  s.x, s.v, energia(s, &par), errore(s, 0., s0, &par, x_esatto),  errore(s, 0., s0, &par, x_esatto)/A(s0, &par));
+for(int n=0; n<n_passi; n++)
+  {
+    passo(dt, &s, n*dt, a, &par); /*qua a passo devi dare d*dt non (n+1)*dt perchè usa il tempo al passo n per calcolare il passo n+1 (le informazioni che do alla velocità/che uso per calcolare */                                              /* il passo successivo sono sempre al tempo n) */
+    fprintf(stdout, "%.10e %.10e %.10e %.10e %.10e %.10e\n", (n+1)*dt, s.x, s.v, energia(s, &par), errore(s, (n+1)*dt, s0, &par, x_esatto), errore(s, (n+1)*dt, s0, &par, x_esatto)/A(s0, &par));
+                                                                                                                                        //t x v E err 
+                                                                                                                                        //e ci ho aggiungo l'errore diviso per l'ampiez pk mi serve nei grafici
+  }
 }
