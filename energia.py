@@ -16,6 +16,6 @@ plt.ylabel('(E-E0)/E0')
 plt.axline((0,0), slope=0, color='black', label='retta E0')
 plt.title('energia in funzione del tempo')
 plt.legend()
-plt.savefig(f"energia_vs_t.png", dpi=600)
+plt.savefig(f"grafici/energia_vs_t.png", dpi=600)
 plt.show()
     
