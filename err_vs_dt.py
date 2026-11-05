@@ -21,6 +21,6 @@ plt.axline((0,0), slope=2, label='retta di pendenza 2')
 plt.axline((0,0), slope=3, color='red',label='retta di pendenza 3')
 plt.xlim(np.log(dts[0]), np.log(dts[-1]))
 plt.legend()
-plt.savefig(f"errore_confronto.png", dpi=600)
+plt.savefig(f"grafici/errore_confronto.png", dpi=600)
 plt.show()
     
