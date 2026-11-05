@@ -25,7 +25,11 @@ typedef double(*posizione_esatta)(double t, Stato s0, const Parametri *par);
 typedef double (*Ampiezza)(Stato s0, const Parametri *par);
 
 double smorzato(double t, Stato s, const Parametri *par){ return (-(par -> omega2)*(par -> omega2)*sin(s.x)-(par -> gamma)*(s.v)) ;} // abbiamo inserito la funzione di tipo accelerazione "smorzato"
-double energia(Stato s, const Parametri *par){return M*(0.5*(G*G*(s.v*s.v)/((par->omega2)*(par->omega2)*(par->omega2)*(par->omega2))+(G*G/((par->omega2)*(par->omega2)*(1-cos(s.x))))));}
+double energia(Stato s, const Parametri *par)
+{
+  double L = G / (par->omega2 * par->omega2);   /* omega0^2 = g/L */
+  return M * (0.5 * L*L * s.v*s.v + G * L * (1.0 - cos(s.x)));
+}
 double errore(Stato s, double t, Stato s0, const Parametri *par, posizione_esatta x_esatto){ return fabs(x_esatto(t, s0, par)-s.x);}
 double posizione_esatta_armonico(double t, Stato s0, const Parametri *par){double w = sqrt(par->omega2); return s0.x * cos((w) * t) + s0.v / (w) * sin((w) * t);}
 double ampiezza_(Stato s0, const Parametri *par){ return sqrt(s0.x*s0.x + s0.v*s0.v/(par->omega2)); }
@@ -36,8 +40,19 @@ void velocity_verlet(double dt, Stato *s, double t, Accelerazione f, const Param
 {
   double vmid=(s->v)+f(t, *s, par)*dt*0.5; 
   (s->x)+=vmid*dt;
-  (s->v)=vmid+0.5*dt*f(t, *s, par); /*se f dipende da v non va bene velocity_verlet*/
+  (s->v)=vmid+0.5*dt*f(t+dt, *s, par); /*se f dipende da v non va bene velocity_verlet*/
 }
+//questo chiama una sola volta f
+/*
+void velocity_verlet(double dt, Stato *s, double t, Accelerazione f, const Parametri *par)
+{
+  double vmid = s->v + 0.5*dt*s->a;      // a(t_n) già salvata //
+  s->x += vmid*dt;
+  Stato snew = { s->x, vmid, 0 };
+  s->a = f(t + dt, snew, par);           // a(t_{n+1}), salvata per il passo dopo //
+  s->v = vmid + 0.5*dt*s->a;
+}
+*/
 void rk4(double dt, Stato *s, double t, Accelerazione f, const Parametri *par)
 {
   double k1[2]={(s->v), f(t, *s, par)};
@@ -83,11 +98,9 @@ int main(int argc, char *argv[])
 for(int n=0; n<n_passi; n++)
   {
     passo(dt, &s, n*dt, smorzato, &par); /*qua a passo devi dare d*dt non (n+1)*dt perchè usa il tempo al passo n per calcolare il passo n+1 (le informazioni che do alla velocità/che uso per calcolare */                                              /* il passo successivo sono sempre al tempo n) */
-    if (n % stride == 0) {
+    if ((n+1)% stride == 0) {
       fprintf(stdout, "%.10e %.10e %.10e %.10e\n", (n+1)*dt, s.x, s.v, energia(s, &par));
     }
-                                                                                                                                        //t x v E err 
-                                                                                                                                        //e ci ho aggiungo l'errore diviso per l'ampiez pk mi serve nei grafici
   }
 }
 

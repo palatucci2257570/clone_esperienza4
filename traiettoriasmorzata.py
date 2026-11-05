@@ -20,9 +20,9 @@ for dt in gamma:
     data=np.loadtxt(f"file/gamma{dt}.dat")
     t = data[:,0]
     E = data[:,3] 
-    plt.plot(t, E, '-', label=f'gamma={dt} [1/s]')
+    plt.plot(t,np.log(E/E[0]), '-', label=f'gamma={dt} [1/s]')
 plt.xlabel('t[s]')
-plt.ylabel('energia [joule]')
+plt.ylabel('log(E/E0)')
 plt.title('energia gamma')
 plt.legend()
 plt.savefig(f"grafici/energiagamma.png", dpi=600)
