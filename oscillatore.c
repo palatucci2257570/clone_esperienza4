@@ -32,9 +32,13 @@ double ampiezza_armonico(Stato s0, const Parametri *par){ return sqrt(s0.x*s0.x 
 
 void eulero(double dt, Stato *s, double t, Accelerazione f,const Parametri *par)
 {
+<<<<<<< HEAD
   Stato s_i=*s;
   (s->x)+=(s->v)*dt;
   (s->v)+=f(t, s_i, par)*dt;
+=======
+  return -(par->omega2)*(s.x); // (*par).omega2
+>>>>>>> 892c2b7fb8dad82e6542bc3fa976bb34f69d38b6
 }
 void eulero_cromer(double dt, Stato *s, double t, Accelerazione f, const Parametri *par)
 {
