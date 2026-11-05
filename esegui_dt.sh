@@ -1,4 +1,5 @@
-
+./oscillatore 3 0.2 20000 1 1 1 > file/velocity_verlet1_0.2.dat
+./oscillatore 4 0.2 20000 1 1 1 > file/rk41_0.2.dat
 ./oscillatore 3 0.001 10240 1 1 1 > file/velocity_verlet_0.001.dat
 ./oscillatore 3 0.002 5120 1 1 1 >  file/velocity_verlet_0.002.dat
 ./oscillatore 3 0.004 2560 1 1 1 >  file/velocity_verlet_0.004.dat

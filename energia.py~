@@ -1,0 +1,19 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+metodo=['velocity_verlet', 'rk4']
+omega=1
+plt.figure()
+for m in metodo:
+    data=np.loadtxt(f"file/{m}1_{0.2}.dat")
+    t=data[:,0]
+    E=data[:,3]
+    plt.plot(t ,(E-E[0])/E[0], '-o', label=m)
+
+plt.xlabel('t[s]')
+plt.ylabel('(E-E0)/E0')
+plt.title('energia in funzione del tempo')
+plt.legend()
+plt.savefig(f"energia_vs_t.png", dpi=600)
+plt.show()
+    
